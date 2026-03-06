@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Dashboard</title>
+    <style>
+        :root {
+            --navy: #001f3f;
+            --gold: #FFD700;
+            --soft-bg: #f0f2f5;
+            --text-dark: #333;
+            --danger: #d9534f;
+            --edit: #0275d8;
+            --white: #ffffff;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--soft-bg);
+            margin: 0;
+            padding: 15px;
+        }
+
+        .dashboard-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: var(--white);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .db-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid var(--navy);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .db-header h1 { margin: 0; color: var(--navy); font-size: 1.6rem; }
+        .accent { color: #b8860b; }
+        .header-text p { margin: 5px 0 0; color: #666; font-size: 0.95rem; }
+
+        .add-btn {
+            background-color: var(--navy);
+            color: var(--gold);
+            text-decoration: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .summary-card {
+            background: var(--navy);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0, 31, 63, 0.2);
+        }
+
+        .summary-info h2 {
+            margin: 0;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--gold);
+        }
+
+        .summary-info .amount {
+            font-size: 2.2rem;
+            font-weight: bold;
+            margin-top: 8px;
+            display: block;
+        }
+
+        /* Desktop Table Styling */
+        .expense-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .expense-table th {
+            background-color: var(--navy);
+            color: var(--white);
+            text-align: left;
+            padding: 15px;
+            font-size: 0.9rem;
+        }
+
+        .expense-table td {
+            padding: 15px;
+            border-bottom: 1px solid #edf0f2;
+            vertical-align: top;
+        }
+
+        .amount-val {
+            font-weight: bold;
+            color: var(--navy);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .desc-box {
+            background-color: #f8f9fa;
+            border-left: 3px solid var(--gold);
+            padding: 6px 10px;
+            font-size: 0.8rem;
+            color: #555;
+            border-radius: 4px;
+            line-height: 1.4;
+            max-width: 180px; /* Prevents stretching on desktop */
+        }
+
+        .total-amount { font-weight: 800; color: #2ecc71; font-size: 1.1rem; }
+
+        .action-btns {
+            display: flex;
+            gap: 10px;
+        }
+
+        .edit-btn, .delete-btn {
+            padding: 8px 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+
+        .edit-btn { background-color: var(--edit); color: white; }
+        .delete-btn { background-color: var(--danger); color: white; }
+
+        /* RESPONSIVE DESIGN */
+       @media (max-width: 768px) {
+    .db-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+    }
+
+    .summary-card { text-align: center; }
+
+    /* Hide Real Headers on Mobile */
+    .expense-table thead { display: none; }
+
+    /* Card Layout for Mobile */
+    .expense-table tr {
+        display: block;
+        background: #fff;
+        border: 1px solid #e1e4e8;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        padding: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .expense-table td {
+        display: block; /* Changed from flex to block for vertical stacking */
+        width: 100%;
+        border-bottom: 1px solid #f1f1f1;
+        padding: 12px 8px;
+        text-align: right; /* Keeps the amount on the right */
+        position: relative;
+    }
+
+    .expense-table td:last-child { border-bottom: none; }
+
+    /* Label positioning */
+    .expense-table td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: var(--navy);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        float: left; /* Floats the label to the left of the amount */
+        margin-top: 2px;
+    }
+
+    /* Description Box Adjustment */
+    .desc-box {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        margin-top: 10px; /* Forces gap between amount and box */
+        text-align: left; /* Makes description text easier to read */
+        clear: both;     /* Ensures it drops below the floated label */
+    }
+
+    .action-btns {
+        display: flex; /* Keep buttons side-by-side on mobile */
+        width: 100%;
+        margin-top: 10px;
+        gap: 8px;
+    }
+
+    .edit-btn, .delete-btn {
+        flex: 1;
+        text-align: center;
+        padding: 12px;
+    }
+}
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="db-header">
+            <div class="header-text">
+                <h1>Expense <span class="accent">Dashboard</span></h1>
+                <p>Welcome back, Sarfraz!</p>
+            </div>
+            <a href="/addexpense" class="add-btn">+ Add Daily Log</a>
+        </header>
+
+        <div class="summary-card">
+            <div class="summary-info">
+                <h2>Total Cumulative Expenses</h2>
+                <span class="amount">₨ <%= grandTotal.toLocaleString('en-IN') %></span>
+            </div>
+        </div>
+
+        <section class="table-section">
+            <table class="expense-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Petrol</th>
+                        <th>Food</th>
+                        <th>Others</th>
+                        <th>Daily Total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% for(let log of logs) { %>
+                    <tr>
+                        <td data-label="Date"><%= new Date(log.date).toLocaleDateString('en-GB') %></td>
+                        
+                        <td data-label="Petrol">
+                            <span class="amount-val">₨ <%= log.petrol %></span>
+                            <% if(log.petrol_des) { %>
+                                <div class="desc-box"><%= log.petrol_des %></div>
+                            <% } %>
+                        </td>
+
+                        <td data-label="Food">
+                            <span class="amount-val">₨ <%= log.food %></span>
+                            <% if(log.food_des) { %>
+                                <div class="desc-box"><%= log.food_des %></div>
+                            <% } %>
+                        </td>
+
+                        <td data-label="Others">
+                            <span class="amount-val">₨ <%= log.others %></span>
+                            <% if(log.others_des) { %>
+                                <div class="desc-box"><%= log.others_des %></div>
+                            <% } %>
+                        </td>
+
+                        <td data-label="Total" class="total-amount">₨ <%= log.totalDaily %></td>
+                        
+                        <td data-label="Actions">
+                            <div class="action-btns">
+                                <a href="/editexpense/<%= log._id %>" class="edit-btn">Edit</a>
+                                <form action="/expenses/<%= log._id %>?_method=DELETE" method="POST" style="margin:0; flex:1;">
+                                    <button class="delete-btn" style="width:100%" onclick="return confirm('Are you sure?')">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </section>
+    </div>
+</body>
+</html>

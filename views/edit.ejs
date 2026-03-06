@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Edit Daily Expense</title>
+    <style>
+        :root {
+            --primary-blue: #003366;
+            --accent-yellow: #FFD700;
+            --bg-light: #f4f7f6;
+            --white: #ffffff;
+            --text-main: #333;
+            --text-muted: #666;
+            --border-color: #e0e0e0;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-light);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 51, 102, 0.1);
+            width: 100%;
+            max-width: 480px;
+            border-top: 8px solid var(--primary-blue);
+        }
+
+        header h1 { color: var(--primary-blue); text-align: center; font-size: 1.6rem; margin-bottom: 0.5rem; }
+        .highlight { color: var(--accent-yellow); }
+        header p { text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+        .input-group { margin-bottom: 1.2rem; }
+        .input-group label { display: block; font-weight: 600; color: var(--primary-blue); margin-bottom: 0.5rem; }
+
+        /* FIX: Added the missing flex row for side-by-side inputs */
+        .input-row { display: flex; gap: 10px; }
+        .input-row input[type="number"] { flex: 2; }
+        .input-row input[type="text"] { flex: 3; }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            background: #fafafa;
+        }
+
+        .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 1rem; }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary-blue);
+            color: var(--white);
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .cancel-btn {
+            text-align: center;
+            text-decoration: none;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            padding: 5px;
+        }
+
+        @media (max-width: 450px) {
+            .input-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Update <span class="highlight">Log</span></h1>
+            <p>Modify your expenses for this date.</p>
+        </header>
+
+        <form action="/editexpense/<%= log._id %>?_method=PUT" method="POST">
+            
+            <div class="input-group">
+                <label>Petrol</label>
+                <div class="input-row">
+                    <input type="number" name="petrol_amount" value="<%= log.petrol %>" placeholder="PKR">
+                    <input type="text" name="petrol_desc" value="<%= log.petrol_des %>" placeholder="Details...">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Food</label>
+                <div class="input-row">
+                    <input type="number" name="food_amount" value="<%= log.food %>" placeholder="PKR">
+                    <input type="text" name="food_desc" value="<%= log.food_des %>" placeholder="Details...">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Others</label>
+                <div class="input-row">
+                    <input type="number" name="others_amount" value="<%= log.others %>" placeholder="PKR">
+                    <input type="text" name="others_desc" value="<%= log.others_des %>" placeholder="Details...">
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button type="submit" class="submit-btn">Update Expense</button>
+                <a href="/expenselog" class="cancel-btn">Cancel & Go Back</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
