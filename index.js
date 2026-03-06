@@ -87,11 +87,29 @@ app.get("/editexpense/:id", async (req, res) => {
 
 app.put("/editexpense/:id", async (req, res) => {
     let { id } = req.params;
-    let { petrol, food, others } = req.body;
+    
+    // 1. Destructure the values from the form
+    let { petrol_amount, food_amount, others_amount, petrol_desc, food_desc, others_desc } = req.body;
+    
+    // 2. Manually calculate the new total
+    // We use Number() to ensure we aren't adding strings (e.g., "10" + "20" = "1020")
+    const updatedTotal = Number(petrol_amount || 0) + Number(food_amount || 0) + Number(others_amount || 0);
+    
     try {
-        await data.findByIdAndUpdate(id, { petrol, food, others });
+        // 3. Update the document including the new totalDaily
+        await data.findByIdAndUpdate(id, { 
+            petrol: petrol_amount, 
+            food: food_amount, 
+            others: others_amount,
+            petrol_des: petrol_desc, 
+            food_des: food_desc,
+            others_des: others_desc,
+            totalDaily: updatedTotal // Manually updating the total here
+        }, { runValidators: true });
+
         res.redirect("/expenselog");
     } catch (err) {
+        console.error("Update Error:", err);
         res.status(500).send("Failed to update data");
     }
 });
@@ -216,5 +234,6 @@ module.exports = app;
 //         res.status(500).send("Failed to delete data");
 //     }
 // });
+
 
 // module.exports = app;
