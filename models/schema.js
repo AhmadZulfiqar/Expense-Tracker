@@ -11,11 +11,10 @@ const dailyLogSchema = new mongoose.Schema({
     totalDaily: { type: Number, default: 0 }
 });
 
-// FIX: Change 'next' to 'next()' and remove the () from the bottom
+// Added next() so the database finishes saving successfully
 dailyLogSchema.pre('save', function (next) {
     this.totalDaily = (this.petrol || 0) + (this.food || 0) + (this.others || 0);
-    
-    
+    next(); 
 });
 
-module.exports = mongoose.model('DailyLog', dailyLogSchema); // Removed () from here
+module.exports = mongoose.model('DailyLog', dailyLogSchema);
