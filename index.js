@@ -14,8 +14,8 @@ app.set('view engine', 'ejs');
 app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
 
-// CHANGE: Using the environment variable you set in Vercel
-const dbUrl = process.env.MONGO_URI || 'mongodb+srv://zulfiqar:ahmad1122@cluster0.kbl2hqm.mongodb.net/?appName=Cluster0';
+// Updated with /test to find your "dailylogs" collection
+const dbUrl = process.env.MONGO_URI || 'mongodb+srv://zulfiqar:ahmad1122@cluster0.kbl2hqm.mongodb.net/test?retryWrites=true&w=majority&appName=Cluster0';
 
 // Database Connection
 mongoose.connect(dbUrl)
