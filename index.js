@@ -15,7 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
 
 // CHANGE: Using the environment variable you set in Vercel
-const dbUrl = process.env.MONGO_URI || 'mongodb+srv://zulfiqar:099405786@cluster0.kbl2hqm.mongodb.net/?appName=Cluster0';
+const dbUrl = process.env.MONGO_URI || 'mongodb+srv://zulfiqar:ahmad1122@cluster0.kbl2hqm.mongodb.net/?appName=Cluster0';
 
 // Database Connection
 mongoose.connect(dbUrl)
