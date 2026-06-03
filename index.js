@@ -5,6 +5,7 @@ const path = require('path');
 const data = require('./models/schema');
 const mongoose = require('mongoose');
 const methodOverride = require('method-override');
+const User = require('./models/user');
 
 require('dotenv').config(); 
 
@@ -14,24 +15,93 @@ app.set('view engine', 'ejs');
 app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
 
-// Updated with /test to find your "dailylogs" collection
-const dbUrl = process.env.MONGO_URI || 'mongodb+srv://zulfiqar:ahmad1122@cluster0.kbl2hqm.mongodb.net/test?retryWrites=true&w=majority&appName=Cluster0';
+const dbUrl = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/expenseTracker';
+
+let TempUserId = null; // Global placeholder for user identification
 
 // Database Connection
 mongoose.connect(dbUrl)
-    .then(() => console.log("Connected to MongoDB Atlas"))
-    .catch(err => console.log("Database Connection Error:", err));
-// const dbUrl = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/expenseTracker';
+    .then(() => console.log(`Successfully connected to Database: ${dbUrl.includes('mongodb+srv') ? 'MongoDB Atlas' : 'Local MongoDB'}`))
+    .catch(err => console.error("Database Connection Error Details:", err));
 
-// // Database Connection
-// mongoose.connect(dbUrl)
-//     .then(() => console.log("Connected to Local MongoDB"))
-//     .catch(err => console.log("Local Database Connection Error:", err));
+// --- ROUTES ---
 
-// Routes
 app.get('/', (req, res) => {
-    // Automatically send users to the log instead of a text message
-    res.redirect("/expenselog");
+    res.redirect("/user");
+});
+
+// Render the Find Tracker Search Page
+app.get("/find-tracker", (req, res) => {
+    res.render("findTracker.ejs", { error: null });
+});
+
+// Handle the Email Search Form Submission
+app.post("/find-tracker", async (req, res) => {
+    const { email } = req.body;
+    try {
+        const user = await User.findOne({ email: email.trim().toLowerCase() });
+
+        if (!user) {
+            return res.render("findTracker.ejs", { 
+                error: "No tracker found with that email address. Try again or create a new profile." 
+            });
+        }
+        
+        TempUserId = user._id; // Store the user ID globally
+        
+        let allData = await data.find({ userId: TempUserId });
+        const grandTotal = allData.reduce((sum, log) => sum + (Number(log.totalDaily) || 0), 0);
+        let userName = user.name || "User";
+        res.render("dashboard.ejs", { logs: allData, grandTotal: grandTotal, user: user });
+    } catch (err) {
+        console.error("Search Error:", err);
+        res.status(500).send("An error occurred while searching for your tracker.");
+    }
+});
+
+// Render User Form
+app.get("/user", (req, res) => {
+    res.render("user.ejs");
+});
+
+// Handle User Submission
+app.post("/user", async (req, res) => {
+    const { name, email } = req.body;
+    try {
+        const normalizedEmail = email.trim().toLowerCase();
+        let user = await User.findOne({ email: normalizedEmail });
+
+        if (!user) {
+            user = new User({ name: name, email: normalizedEmail });
+            await user.save();
+        }
+        
+        TempUserId = user._id; // FIX: Set global ID for brand new registered users too!
+        res.redirect("/expenselog");
+    } catch (err) {
+        console.error("Error saving user details:", err);
+        res.status(500).send(`Failed to save user: ${err.message}`);
+    }
+});
+
+// Expense Log route (Uncommented and fixed so page redirection redirects properly)
+app.get("/expenselog", async (req, res) => {
+    try {
+        let allData = await data.find({ userId: TempUserId });
+        let user = await User.findById(TempUserId);
+        const grandTotal = allData.reduce((sum, log) => sum + (Number(log.totalDaily) || 0), 0);
+        
+        console.log(user,allData,grandTotal);
+
+        res.render("dashboard.ejs", { 
+            logs: allData, 
+            grandTotal: grandTotal,
+            user: user
+        });
+    } catch (err) {
+        console.error("Fetch Error:", err);
+        res.status(500).send(`Failed to retrieve data: ${err.message}`);
+    }
 });
 
 app.get("/addexpense", (req, res) => {
@@ -39,39 +109,32 @@ app.get("/addexpense", (req, res) => {
 });
 
 app.post("/addexpense", async (req, res) => {
-    // Destructure based on the "name" attribute in your HTML form
     let { petrol_amount, food_amount, others_amount, petrol_desc, food_desc, others_desc } = req.body;
     
-    // Map them to your Mongoose Schema fields
+    let petrolNum = Number(petrol_amount) || 0;
+    let foodNum = Number(food_amount) || 0;
+    let othersNum = Number(others_amount) || 0;
+    let calculatedTotal = petrolNum + foodNum + othersNum;
+
     let newdata = new data({ 
-        petrol: petrol_amount || 0, 
-        food: food_amount || 0, 
-        others: others_amount || 0, 
+        userId: TempUserId, // FIX: Save tracking records linked to your global id variable
+        petrol: petrolNum, 
+        food: foodNum, 
+        others: othersNum, 
         petrol_des: petrol_desc, 
         food_des: food_desc, 
-        others_des: others_desc 
+        others_des: others_desc,
+        totalDaily: calculatedTotal 
     });
 
     try {
         await newdata.save();
+        
+        // Use your clean /expenselog redirect structure instead of manually rendering dashboards here
         res.redirect("/expenselog");
     } catch (err) {
-        console.log("Error saving data:", err);
-        res.status(500).send("Failed to save data");
-    }
-});
-
-app.get("/expenselog", async (req, res) => {
-    try {
-        let allData = await data.find({});
-        
-        // Calculate the grand total of all logs
-        const grandTotal = allData.reduce((sum, log) => sum + (log.totalDaily || 0), 0);
-        
-        res.render("dashboard.ejs", { logs: allData, grandTotal: grandTotal });
-    } catch (err) {
-        console.error("Fetch Error:", err);
-        res.status(500).send("Failed to retrieve data");
+        console.error("Error saving data to DB:", err);
+        res.status(500).send(`Failed to save data: ${err.message}`);
     }
 });
 
@@ -87,30 +150,28 @@ app.get("/editexpense/:id", async (req, res) => {
 
 app.put("/editexpense/:id", async (req, res) => {
     let { id } = req.params;
-    
-    // 1. Destructure the values from the form
     let { petrol_amount, food_amount, others_amount, petrol_desc, food_desc, others_desc } = req.body;
     
-    // 2. Manually calculate the new total
-    // We use Number() to ensure we aren't adding strings (e.g., "10" + "20" = "1020")
-    const updatedTotal = Number(petrol_amount || 0) + Number(food_amount || 0) + Number(others_amount || 0);
+    const petrolNum = Number(petrol_amount) || 0;
+    const foodNum = Number(food_amount) || 0;
+    const othersNum = Number(others_amount) || 0;
+    const updatedTotal = petrolNum + foodNum + othersNum;
     
     try {
-        // 3. Update the document including the new totalDaily
         await data.findByIdAndUpdate(id, { 
-            petrol: petrol_amount, 
-            food: food_amount, 
-            others: others_amount,
+            petrol: petrolNum, 
+            food: foodNum, 
+            others: othersNum,
             petrol_des: petrol_desc, 
             food_des: food_desc,
             others_des: others_desc,
-            totalDaily: updatedTotal // Manually updating the total here
-        }, { runValidators: true });
+            totalDaily: updatedTotal 
+        }, { runValidators: true, new: true });
 
         res.redirect("/expenselog");
     } catch (err) {
         console.error("Update Error:", err);
-        res.status(500).send("Failed to update data");
+        res.status(500).send(`Failed to update data: ${err.message}`);
     }
 });
 
@@ -132,108 +193,3 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 module.exports = app;
-
-
-
-
-// const express = require('express');
-// const mongoose = require('mongoose');
-// const path = require('path');
-// const methodOverride = require('method-override');
-// require('dotenv').config(); 
-
-// const app = express();
-// const port = process.env.PORT || 3000;
-// const data = require('./models/schema');
-
-// // 1. Configuration
-// app.set('views', path.join(process.cwd(), 'views'));
-// app.set('view engine', 'ejs');
-
-// // 2. Middleware
-// app.use(express.urlencoded({ extended: true }));
-// app.use(express.json());
-// app.use(methodOverride('_method'));
-
-// // 3. Local Database Connection
-// // 'dailyexpense' will be the name of your local database
-// const localDbUrl = 'mongodb://127.0.0.1:27017/dailyexpense';
-
-// mongoose.connect(localDbUrl)
-//     .then(() => {
-//         console.log("Connected to LOCAL MongoDB");
-//         app.listen(port, () => {
-//             console.log(`Server is running on http://localhost:${port}`);
-//         });
-//     })
-//     .catch(err => {
-//         console.error("Local Database Connection Error:");
-//         console.error(err.message);
-//         console.log("Tip: Make sure the 'MongoDB Action' service is running in your Windows Services.");
-//     });
-
-// // 4. Routes
-// app.get('/', (req, res) => {
-//     res.redirect("/expenselog");
-// });
-
-// app.get("/addexpense", (req, res) => {
-//     res.render("index.ejs");
-// });
-
-// app.post("/addexpense", async (req, res) => {
-//     try {
-//         const { petrol, food, others } = req.body;
-//         const newdata = new data({ petrol, food, others });
-//         await newdata.save();
-//         res.redirect("/expenselog");
-//     } catch (err) {
-//         console.error("Error saving data:", err);
-//         res.status(500).send("Failed to save data");
-//     }
-// });
-
-// app.get("/expenselog", async (req, res) => {
-//     try {
-//         let allData = await data.find({});
-        
-//         // Calculate the grand total of all logs
-//         const grandTotal = allData.reduce((sum, log) => sum + (log.totalDaily || 0), 0);
-        
-//         res.render("dashboard.ejs", { logs: allData, grandTotal: grandTotal });
-//     } catch (err) {
-//         console.error("Fetch Error:", err);
-//         res.status(500).send("Failed to retrieve data");
-//     }
-// });
-
-// app.get("/editexpense/:id", async (req, res) => {
-//     try {
-//         const foundData = await data.findById(req.params.id);
-//         res.render("edit.ejs", { log: foundData });
-//     } catch (err) {
-//         res.status(500).send("Failed to retrieve data for edit");
-//     }
-// });
-
-// app.put("/editexpense/:id", async (req, res) => {
-//     try {
-//         const { petrol, food, others } = req.body;
-//         await data.findByIdAndUpdate(req.params.id, { petrol, food, others });
-//         res.redirect("/expenselog");
-//     } catch (err) {
-//         res.status(500).send("Failed to update data");
-//     }
-// });
-
-// app.delete("/expenses/:id", async (req, res) => {
-//     try {
-//         await data.findByIdAndDelete(req.params.id);
-//         res.redirect("/expenselog");
-//     } catch (err) {
-//         res.status(500).send("Failed to delete data");
-//     }
-// });
-
-
-// module.exports = app;
