@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const dailyLogSchema = new mongoose.Schema({
+    userId: { // Connects the Log schema structure straight to the User model
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
     date: { type: Date, default: Date.now },
     petrol: { type: Number, default: 0 },
     food: { type: Number, default: 0 },
@@ -11,10 +15,10 @@ const dailyLogSchema = new mongoose.Schema({
     totalDaily: { type: Number, default: 0 }
 });
 
-// Added next() so the database finishes saving successfully
+// Middleware Fix: Calculate total and fire next() safely
 dailyLogSchema.pre('save', function (next) {
     this.totalDaily = (this.petrol || 0) + (this.food || 0) + (this.others || 0);
-    next(); 
+    
 });
 
 module.exports = mongoose.model('DailyLog', dailyLogSchema);
